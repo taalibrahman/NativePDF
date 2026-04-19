@@ -14,7 +14,9 @@ import {
   Camera,
   RefreshCw,
   FileText,
-  Loader2
+  Loader2,
+  Download,
+  Share
 } from 'lucide-react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 
@@ -24,6 +26,8 @@ export default function App() {
   const [isReady, setIsReady] = useState(false);
   const [activeTool, setActiveTool] = useState(null);
   const [sharedFile, setSharedFile] = useState(null);
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
 
   const {
     offlineReady: [offlineReady],
@@ -48,8 +52,41 @@ export default function App() {
       setIsReady(true);
     }, 2500);
 
-    return () => clearTimeout(timer);
+    const handleInstallPrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      // Show banner after 4 seconds of activity
+      setTimeout(() => setShowInstallBanner(true), 4000);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleInstallPrompt);
+    
+    // Check if it's iOS and not already installed
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+    if (isIOS && !isStandalone) {
+       setTimeout(() => setShowInstallBanner(true), 6000);
+    }
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('beforeinstallprompt', handleInstallPrompt);
+    };
   }, []);
+
+  const handleInstallClick = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setShowInstallBanner(false);
+        setDeferredPrompt(null);
+      }
+    } else {
+      // Fallback for iOS/other browsers: show a message or just keep banner for help
+      alert("To install NativePDF:\n1. Tap the Share button\n2. Scroll down and tap 'Add to Home Screen'");
+    }
+  };
 
   const toggleTheme = () => {
     setIsDark(!isDark);
@@ -327,6 +364,46 @@ export default function App() {
         sharedFile={sharedFile} 
         setSharedFile={setSharedFile} 
       />
+
+      {/* Install Banner */}
+      {showInstallBanner && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] w-[90%] max-w-md animate-in slide-in-from-bottom-8 duration-500">
+          <div className={`relative p-5 rounded-3xl border overflow-hidden backdrop-blur-xl shadow-2xl flex items-center gap-4 ${
+            isDark 
+              ? 'bg-[#2a2a2a]/90 border-gray-700/50 text-white' 
+              : 'bg-white/90 border-gray-200 text-gray-900'
+          }`}>
+            {/* Branded Icon Preview */}
+            <div className="flex-shrink-0 w-14 h-14 rounded-2xl overflow-hidden shadow-lg border-2 border-blue-500/20">
+              <img src="/pwa-192x192.png" alt="App Icon" className="w-full h-full object-cover" />
+            </div>
+            
+            <div className="flex-1 min-w-0">
+              <h4 className="font-bold text-base truncate">Install NativePDF</h4>
+              <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'} line-clamp-1`}>
+                Work offline & launch from home screen
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={handleInstallClick}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-md active:scale-95"
+              >
+                {deferredPrompt ? 'Install' : 'How-to'}
+              </button>
+              <button
+                onClick={() => setShowInstallBanner(false)}
+                className={`p-1.5 rounded-lg text-center text-[10px] font-medium transition-colors ${
+                  isDark ? 'text-gray-500 hover:text-gray-400 hover:bg-gray-800' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                Maybe later
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
