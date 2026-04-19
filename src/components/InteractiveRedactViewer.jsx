@@ -726,7 +726,7 @@ export default function InteractiveRedactViewer({ file, isDark, onClose }) {
           
           if (wmImage) {
              const aspect = wmImage.width / wmImage.height;
-             const imgW = width * 0.5 * sc;
+             const imgW = width * 0.4 * sc;
              const imgH = imgW / aspect;
              
              const cxLocal = imgW / 2;
@@ -887,7 +887,7 @@ export default function InteractiveRedactViewer({ file, isDark, onClose }) {
                         <img 
                           src={watermark.image} 
                           alt="watermark preview" 
-                          style={{ maxWidth: '300px', maxHeight: '300px', objectFit: 'contain' }} 
+                          style={{ width: '40%', height: 'auto', objectFit: 'contain' }} 
                         />
                      )}
                      {watermark.text?.trim() && <div>{watermark.text}</div>}

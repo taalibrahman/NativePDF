@@ -149,7 +149,7 @@ export default function App() {
 
             {/* GitHub Link - Hidden on mobile */}
             <a
-              href="https://github.com"
+              href="https://github.com/taalibrahman/NativePDF"
               className={`hidden md:flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
                 isDark
                   ? 'text-gray-300 hover:bg-gray-800'
@@ -300,7 +300,7 @@ export default function App() {
 
               {/* GitHub Link in mobile menu */}
               <a
-                href="https://github.com"
+                href="https://github.com/taalibrahman/NativePDF"
                 className={`flex items-center gap-3 px-6 py-4 rounded-2xl transition-colors ${
                   isDark
                     ? 'bg-[#2a2a2a] text-gray-300'
