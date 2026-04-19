@@ -328,24 +328,47 @@ export default function ScanToPdfWorkspace({ isDark, onBack, sharedFile }) {
     setIsExporting(true);
     try {
       const doc = await PDFDocument.create();
+      
       for (const page of pages) {
-        const img = await new Promise(res => { const el = new Image(); el.onload = () => res(el); el.src = page.dataUrl; });
-        const cv  = document.createElement('canvas');
-        cv.width = img.naturalWidth; cv.height = img.naturalHeight;
-        cv.getContext('2d').drawImage(img, 0, 0);
-        const bytes = Uint8Array.from(atob(cv.toDataURL('image/jpeg', 0.82).split(',')[1]), c => c.charCodeAt(0));
-        const emb   = await doc.embedJpg(bytes);
-        const pg    = doc.addPage([emb.width, emb.height]);
+        // Efficient binary conversion (avoids main-thread freezing)
+        const response = await fetch(page.dataUrl);
+        const bytes = await response.arrayBuffer();
+        
+        let emb;
+        if (page.dataUrl.includes('image/png')) {
+          emb = await doc.embedPng(bytes);
+        } else {
+          emb = await doc.embedJpg(bytes);
+        }
+        
+        const pg = doc.addPage([emb.width, emb.height]);
         pg.drawImage(emb, { x: 0, y: 0, width: emb.width, height: emb.height });
       }
+      
       const bytes = await doc.save();
-      const blob  = new Blob([bytes], { type: 'application/pdf' });
-      const url   = URL.createObjectURL(blob);
-      const a     = Object.assign(document.createElement('a'), { href: url, download: `${pdfName.trim() || 'scan'}.pdf` });
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-    } catch (err) { alert('Export failed: ' + err.message); }
-    finally { setIsExporting(false); }
+      const blob = new Blob([bytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = `${pdfName.trim() || 'scan'}.pdf`;
+      document.body.appendChild(a);
+      
+      // Ensure the click is handled correctly in all mobile browsers
+      a.click();
+      
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 2000);
+      
+    } catch (err) {
+      console.error('Export Error:', err);
+      alert('Export failed: ' + err.message);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
 
