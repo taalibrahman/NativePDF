@@ -1,0 +1,13 @@
+services:
+  frontend:
+    build: .
+    ports:
+      - "5173:5173"
+    volumes:
+      # Map our local project directory into the container for hot reloading
+      - ./:/app
+      # Create an anonymous volume for node_modules so that the host's directory
+      # doesn't overwrite the linux ones installed inside the container
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
