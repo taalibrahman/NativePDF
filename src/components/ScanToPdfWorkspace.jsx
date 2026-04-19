@@ -329,6 +329,8 @@ export default function ScanToPdfWorkspace({ isDark, onBack, sharedFile }) {
     try {
       const doc = await PDFDocument.create();
       
+      let masterSize = null;
+
       for (const page of pages) {
         // Efficient binary conversion (avoids main-thread freezing)
         const response = await fetch(page.dataUrl);
@@ -340,9 +342,27 @@ export default function ScanToPdfWorkspace({ isDark, onBack, sharedFile }) {
         } else {
           emb = await doc.embedJpg(bytes);
         }
+
+        // Standardize all pages to the size of the first page
+        if (!masterSize) {
+          masterSize = [emb.width, emb.height];
+        }
         
-        const pg = doc.addPage([emb.width, emb.height]);
-        pg.drawImage(emb, { x: 0, y: 0, width: emb.width, height: emb.height });
+        const pg = doc.addPage(masterSize);
+
+        // Fit image into masterSize while preserving aspect ratio
+        const scale = Math.min(masterSize[0] / emb.width, masterSize[1] / emb.height);
+        const drawW = emb.width * scale;
+        const drawH = emb.height * scale;
+        const x = (masterSize[0] - drawW) / 2;
+        const y = (masterSize[1] - drawH) / 2;
+
+        pg.drawImage(emb, { 
+          x, 
+          y, 
+          width: drawW, 
+          height: drawH 
+        });
       }
       
       const bytes = await doc.save();
