@@ -11,6 +11,8 @@ import {
   Minimize2,
   ScanText,
   Edit3,
+  Camera,
+  RefreshCw,
   FileText,
   Loader2
 } from 'lucide-react';
